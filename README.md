@@ -69,19 +69,29 @@ The complete schematic was designed and validated in **Proteus Design Suite**:
 
 The circuit operates via a non-linear two-stage inverter cascade governed by BJT operating regions: **Cutoff**, **Active**, and **Saturation**.
 
-```
-                [ Rail +8.3V ]
-                      │
-            ┌─────────┴─────────┐
-            │                   │
-         [LDR1]                [R2]
-            │                 4.7kΩ
-     VB3 ───┴───┐               │
-                │          VC3 ─┴───► Base Q1
-             Base Q3            │
-                │            Collector Q3
-              [Q3]              │
-             BC547             [Q1] PN2222A ──► LED Arrays
+```mermaid
+graph TD
+    RAIL["⚡ Rail +8.3V\n9V − 0.7V diode drop"]
+
+    RAIL --> LDR1["🔆 LDR1\nCadmium Sulfide Photoresistor\nR_LDR: 500Ω → 1MΩ"]
+    RAIL --> R2["R2 — 4.7 kΩ\nPull-up / Q1 Base Driver"]
+
+    LDR1 --> DIVNODE["VB3 — Divider Node\nVB3 = Vrail × R1 ÷ (R1 + R_LDR)"]
+    R1["R1 — 4.7 kΩ\nDivider Lower Arm"] --> DIVNODE
+
+    DIVNODE --> Q3["Q3 — BC547 NPN\nSensing Inverter Stage\nTO-92 Package"]
+    R2 --> Q1BASE["Q1 Base Drive Node\nVC3 → IB1 when Q3 OFF"]
+    Q3 -->|"Collector pulls VC3 low when ON"| Q1BASE
+
+    Q1BASE --> Q1["Q1 — PN2222A NPN\nHigh-Current Output Driver\nIC_max = 600 mA"]
+
+    Q1 -->|"Collector sinks load current"| BRANCH1["🟡 Branch 1\nR3 (330Ω) + D1 + D5\nYellow LEDs — ~12.5 mA"]
+    Q1 --> BRANCH2["🟢 Branch 2\nR4 (330Ω) + D2 + D4\nGreen LEDs — ~11.9 mA"]
+
+    GND(["GND"])
+    Q3 --> GND
+    Q1 --> GND
+    R1 --> GND
 ```
 
 ### 1. Light Sensing Divider Network
@@ -105,24 +115,31 @@ $$R_{\text{LDR(th)}} = R_1 \cdot \left( \frac{V_{\text{rail}}}{V_{B3}} - 1 \righ
 
 ### 2. State Analysis: Daylight / Illuminated State
 
+```mermaid
+flowchart TD
+    classDef sunNode fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fef3c7
+    classDef satNode fill:#7f1d1d,stroke:#ef4444,stroke-width:2px,color:#fecaca
+    classDef offNode fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff
+
+    A(["☀️ LDR Illuminated\nR_LDR ~ 1 kΩ – 10 kΩ"]):::sunNode
+    B["VB3 rises to 2.6V – 6.8V\n≫ threshold of 0.65V"]:::satNode
+    C["Q3 (BC547) → Deep Saturation\nVCE3(sat) ≈ 0.15V"]:::satNode
+    D["Q1 Base clamped at 0.15V\n< VBE cut-in (0.55V)"]:::satNode
+    E["Q1 (PN2222A) → Hard Cutoff\nIB1 = 0 · IC1 ≈ 0 mA"]:::satNode
+    F(["🔴 LEDs OFF\nLoad branches open-circuit"]):::offNode
+
+    A --> B --> C --> D --> E --> F
 ```
-LDR illuminated (RLDR ~ 1kΩ - 10kΩ)
-       │
-       ▼
-VB3 rises to ~ 2.6V - 6.8V  (>> 0.65V)
-       │
-       ▼
-Q3 forward biased into Deep Saturation (VCE3(sat) ≈ 0.15V)
-       │
-       ▼
-Base of Q1 clamped to VCE3(sat) = 0.15V < VBE(cut-in) (0.55V)
-       │
-       ▼
-Q1 forced into Hard Cutoff (IB1 = 0, IC1 ≈ 0)
-       │
-       ▼
-Load branches open-circuited ──► LEDs OFF
-```
+
+| Parameter | Value |
+|:----------|:-----:|
+| $Q_3$ Base Voltage ($V_{B3}$) | $2.6\,\text{V}$ – $6.8\,\text{V}$ |
+| $Q_3$ Operating Region | **Deep Saturation** |
+| $V_{CE3(\text{sat})}$ | $\approx 0.15\,\text{V}$ |
+| $Q_1$ Operating Region | **Hard Cutoff** |
+| Collector Current $I_{C3}$ | $\approx 1.73\,\text{mA}$ |
+| Control Stage Power | $P_{Q3} \approx 0.26\,\text{mW}$ (negligible) |
+| LED Load Current | **0 mA** |
 
 - In this mode, collector current through $Q_3$ is:
   
@@ -134,25 +151,33 @@ Load branches open-circuited ──► LEDs OFF
 
 ### 3. State Analysis: Darkness / Sensor Obscured
 
+```mermaid
+flowchart TD
+    classDef darkNode fill:#134e4a,stroke:#2dd4bf,stroke-width:2px,color:#ccfbf1
+    classDef satNode fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#bbf7d0
+    classDef ledNode fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,color:#bfdbfe
+
+    A(["🌑 LDR Obscured / Dark\nR_LDR > 100 kΩ – 1 MΩ"]):::darkNode
+    B["VB3 drops below 0.3V\n≪ threshold of 0.60V"]:::darkNode
+    C["Q3 (BC547) → Cutoff Region\nIC3 ≈ 0 mA"]:::darkNode
+    D["R2 injects base drive into Q1\nIB1 = (8.3V − 0.75V) ÷ 4.7kΩ ≈ 1.61 mA"]:::satNode
+    E["Q1 (PN2222A) → Deep Saturation\nVCE1(sat) ≈ 0.18V · βforced ≈ 15.1"]:::satNode
+    F(["🟡🟢 LEDs ON at Full Brightness\nIC1(total) ≈ 24.4 mA — Both Branches Active"]):::ledNode
+
+    A --> B --> C --> D --> E --> F
 ```
-LDR obscured (RLDR > 100kΩ - 1MΩ)
-       │
-       ▼
-VB3 drops below 0.3V (<< 0.60V)
-       │
-       ▼
-Q3 drops into Cutoff (IC3 ≈ 0)
-       │
-       ▼
-R2 delivers uninhibited base drive into Q1:
-IB1 = (Vrail - VBE1(sat)) / R2 ≈ (8.3V - 0.75V) / 4.7kΩ ≈ 1.61 mA
-       │
-       ▼
-Q1 driven into Deep Saturation (VCE1(sat) ≈ 0.18V)
-       │
-       ▼
-Collector sinks full load current ──► LEDs GLOW AT FULL BRILLIANCE
-```
+
+| Parameter | Value |
+|:----------|:-----:|
+| $Q_3$ Base Voltage ($V_{B3}$) | $< 0.30\,\text{V}$ |
+| $Q_3$ Operating Region | **Cutoff** |
+| $Q_1$ Base Current ($I_{B1}$) | $\approx 1.61\,\text{mA}$ |
+| $Q_1$ Operating Region | **Deep Saturation** |
+| $V_{CE1(\text{sat})}$ | $\approx 0.18\,\text{V}$ |
+| Yellow Branch Current | $\approx 12.48\,\text{mA}$ |
+| Green Branch Current | $\approx 11.88\,\text{mA}$ |
+| Total LED Load Current | $\approx 24.36\,\text{mA}$ |
+| Forced Beta ($\beta_{\text{forced}}$) | $\approx 15.1$ — overdrive factor $> 6.5\times$ |
 
 #### Verification of Saturation Overdrive for Output Transistor $Q_1$:
 
@@ -266,20 +291,13 @@ When ambient light levels drop below the programmed threshold ($R_{\text{LDR}} >
 
 ## ⚖️ Engineering Trade-Offs & Future Enhancements
 
-```
-┌──────────────────────────────────────┬──────────────────────────────────────┐
-│        Current Implementations       │         Proposed Architecture        │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│ Fixed R1 (4.7kΩ) divider reference   │ Multi-turn 10kΩ Cermet Potentiometer │
-│  ↳ Threshold fixed by component tol  │  ↳ User-calibrated Lux switching     │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│ Soft linear transition at threshold  │ Schmitt Trigger / LM393 Comparator   │
-│  ↳ Slight flicker in twilight        │  ↳ Sharp switching with hysteresis   │
-├──────────────────────────────────────┼──────────────────────────────────────┤
-│ Direct LED branch collector sink     │ Electromechanical Relay / Power FET  │
-│  ↳ Limited to small DC indicators    │  ↳ 230V AC mains load automation     │
-└──────────────────────────────────────┴──────────────────────────────────────┘
-```
+| # | Limitation | Current Implementation | Proposed Enhancement | Expected Improvement |
+|:--:|:-----------|:----------------------|:---------------------|:---------------------|
+| 1 | **Fixed Threshold** | $R_1 = 4.7\,\text{k}\Omega$ fixed reference — switching point determined by component tolerance | Replace $R_1$ with a **10 kΩ multi-turn cermet potentiometer** | Fully user-adjustable Lux switching point; on-site calibration |
+| 2 | **Threshold Flicker** | Gradual BJT linear-active transition near boundary — LEDs oscillate at twilight | Add **LM393 voltage comparator** with positive feedback (Schmitt hysteresis) | Snap-action switching; eliminates flicker band entirely |
+| 3 | **LED-Only Load** | Collector sink current limited to small DC indicator arrays (~25 mA) | Replace LED branch with **5V relay** or **IRF540N Power MOSFET** gate drive | Switch 230V AC mains loads — fans, lamps, any household appliance |
+| 4 | **Slow LDR Response** | CdS photoresistor response time ~20–50 ms; hysteresis in recovery | Replace LDR with **BPW34 PIN photodiode** + transimpedance amplifier | Sub-millisecond response; linear lux-to-voltage conversion |
+| 5 | **Breadboard Fragility** | Loose contact joints; susceptible to vibration and intermittent opens | Migrate design to **custom PCB** (EasyEDA / KiCad) with soldered joints | Mechanical robustness; long-term deployment reliability |
 
 ---
 
