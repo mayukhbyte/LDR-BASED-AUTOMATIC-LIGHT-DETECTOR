@@ -179,22 +179,26 @@ flowchart TD
 | Total LED Load Current | $\approx 24.36\,\text{mA}$ |
 | Forced Beta ($\beta_{\text{forced}}$) | $\approx 15.1$ — overdrive factor $> 6.5\times$ |
 
-#### Verification of Saturation Overdrive for Output Transistor $Q_1$:
+#### Verification of Saturation Overdrive for Output Transistor $Q_1$
 
-For standard PN2222A switching:
-- Load current per yellow branch ($V_{FY} \approx 2.0\,\text{V} \times 2 = 4.0\,\text{V}$):
-  $$I_{\text{branch1}} = \frac{V_{\text{rail}} - 2V_{FY} - V_{CE1(\text{sat})}}{R_3} = \frac{8.3\,\text{V} - 4.0\,\text{V} - 0.18\,\text{V}}{330\,\Omega} \approx 12.48\,\text{mA}$$
+**Yellow LED Branch** — two series LEDs, $V_{FY} \approx 2.0\,\text{V}$ each:
 
-- Load current per green branch ($V_{FG} \approx 2.1\,\text{V} \times 2 = 4.2\,\text{V}$):
-  $$I_{\text{branch2}} = \frac{V_{\text{rail}} - 2V_{FG} - V_{CE1(\text{sat})}}{R_4} = \frac{8.3\,\text{V} - 4.2\,\text{V} - 0.18\,\text{V}}{330\,\Omega} \approx 11.88\,\text{mA}$$
+$$I_{\text{branch1}} = \frac{V_{\text{rail}} - 2V_{FY} - V_{CE1(\text{sat})}}{R_3} = \frac{8.3 - 4.0 - 0.18}{330} \approx 12.48\,\text{mA}$$
 
-- Total Collector Sink Current:
-  $$I_{C1(\text{total})} = I_{\text{branch1}} + I_{\text{branch2}} = 12.48\,\text{mA} + 11.88\,\text{mA} \approx 24.36\,\text{mA}$$
+**Green LED Branch** — two series LEDs, $V_{FG} \approx 2.1\,\text{V}$ each:
 
-- Forced Beta Ratio ($\beta_{\text{forced}}$):
-  $$\beta_{\text{forced}} = \frac{I_{C1(\text{total})}}{I_{B1}} = \frac{24.36\,\text{mA}}{1.61\,\text{mA}} \approx 15.13$$
+$$I_{\text{branch2}} = \frac{V_{\text{rail}} - 2V_{FG} - V_{CE1(\text{sat})}}{R_4} = \frac{8.3 - 4.2 - 0.18}{330} \approx 11.88\,\text{mA}$$
 
-Since minimum DC current gain $h_{FE(\min)}$ of PN2222A exceeds $100$, an operating $\beta_{\text{forced}} \approx 15.1$ provides an **overdrive factor $> 6.5\times$**, guaranteeing low $V_{CE}$ saturation voltage and minimal thermal dissipation ($P_{D1} \approx 4.4\,\text{mW}$).
+**Total Collector Sink Current:**
+
+$$I_{C1(\text{total})} = I_{\text{branch1}} + I_{\text{branch2}} = 12.48 + 11.88 \approx 24.36\,\text{mA}$$
+
+**Forced Beta (Overdrive Verification):**
+
+$$\beta_{\text{forced}} = \frac{I_{C1(\text{total})}}{I_{B1}} = \frac{24.36\,\text{mA}}{1.61\,\text{mA}} \approx 15.13$$
+
+> [!TIP]
+> Since $h_{FE(\min)}$ of PN2222A exceeds **100**, the forced $\beta \approx 15.1$ represents an **overdrive factor > 6.5×** — guaranteeing $Q_1$ remains deep in saturation with $V_{CE1(\text{sat})} \approx 0.18\,\text{V}$ and minimal thermal dissipation ($P_{D1} \approx 4.4\,\text{mW}$).
 
 ---
 
@@ -322,5 +326,5 @@ Developed under the **Department of Electronics and Communication Engineering (E
 This repository and all associated documentation, schematics, and media are released under the [MIT License](LICENSE).
 
 ```text
-Copyright (c) 2024-2027 Siddhartha Saha & Mayukh Bhattacharjee
+Copyright (c) 2026-2027 Mayukh Bhattacharjee & Siddhartha Saha
 ```
